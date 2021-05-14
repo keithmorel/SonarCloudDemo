@@ -24,10 +24,12 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.revature.dao.ShipDAO;
 import com.revature.model.Ship;
 import com.revature.model.User;
+import com.revature.template.MessageTemplate;
 import com.revature.template.ShipTemplate;
 
 @ExtendWith(SpringExtension.class)
@@ -85,7 +87,7 @@ class ShipTest {
 	
 	@Test
 	@Order(2)
-	void testShip1ExistsInDB() throws Exception {
+	void testShip1_ExistsInDB() throws Exception {
 		MockHttpSession session = new MockHttpSession();
 		User user = new User(1, "user", "pass");
 		session.setAttribute("loggedInUser", user);
@@ -101,6 +103,25 @@ class ShipTest {
 		this.mockMvc.perform(builder) // Can use this structure to get the session object out of the request (e.g. test login adding user to session)
 			.andExpect(MockMvcResultMatchers.status().isOk())
 			.andExpect(MockMvcResultMatchers.content().json(expectedJson));
+	}
+	
+	@Test
+	@Order(3)
+	void testShip1000_doesNotExistInDB() throws Exception {
+		MockHttpSession session = new MockHttpSession();
+		User user = new User(1, "user", "pass");
+		session.setAttribute("loggedInUser", user);
+		
+		MockHttpServletRequestBuilder builder = MockMvcRequestBuilders
+				.get("/ship/1000")
+				.session(session); // Includes the 'loggedInUser' session attribute to bypass the authorization check
+		
+		MessageTemplate expectedMessage = new MessageTemplate("Ship with id 1000 was not found.");
+		String expected = objectMapper.writeValueAsString(expectedMessage);
+		
+		this.mockMvc.perform(builder)
+			.andExpect(MockMvcResultMatchers.status().isNotFound())
+			.andExpect(MockMvcResultMatchers.content().json(expected));
 	}
 
 }
